@@ -1,5 +1,7 @@
 local HttpService = game:GetService("HttpService")
 
+local hashLib = require(script.Parent.HashLib)
+
 local function uriEncode(string, doubleEncodeEquals)
     local baseUrl = HttpService:UrlEncode(string)
     local urlWithHyphens = string.gsub(baseUrl, "%%2D", "-")
@@ -24,17 +26,15 @@ local function split(inputString, separator)
 	end
 end
 
-local function sortTable(table)
+local function sortTable(tab)
     local tempTable = {}
-    for key, value in pairs(table) do
+    for key, value in pairs(tab) do
         table.insert(tempTable, {key, value})
     end
     table.sort(tempTable, function(a,b) return a[1] < b[1] end)
-    local sortedTable = {}
+	local sortedTable = {}
     for i = 1, #tempTable do
-        for key, value in pairs(tempTable[i]) do
-            sortedTable[key] = value
-        end
+		sortedTable[tostring(tempTable[i][1])] = tempTable[i][2]
     end
     return sortedTable
 end
@@ -47,7 +47,7 @@ local function formCanonicalRequest(method, path, query, headers, payload)
         canonicalUri = canonicalUri .. uriEncode(uriEncode(v))
     end
     canonicalUri = canonicalUri .. "\n"
-    canonicalQueryString = ""
+    local canonicalQueryString = ""
     for k, v in pairs(sortTable(query)) do
         canonicalQueryString = canonicalQueryString .. k .. "=" .. uriEncode(v, true) .. "&"
     end
@@ -56,35 +56,94 @@ local function formCanonicalRequest(method, path, query, headers, payload)
     local signedHeaders = ""
     for k, v in pairs(sortTable(headers)) do
         canonicalHeaders = canonicalHeaders .. string.lower(k) .. ":" .. v .. "\n"
-        signedHeaders = signedHeaders .. k .. ";"
+        signedHeaders = signedHeaders .. string.lower(k) .. ";"
     end
-    local payloadHash = "" --hash the given payload
-    local canonicalRequest = canonicalMethod .. canonicalUri .. canonicalQueryString .. canonicalHeaders .. payloadHash
-    return canonicalRequest
+    canonicalHeaders = canonicalHeaders .. "\n"
+    signedHeaders = string.sub(signedHeaders, 1, #signedHeaders - 1)
+    local payloadHash = hashLib.sha256(payload)
+    local canonicalRequest = canonicalMethod .. canonicalUri .. canonicalQueryString .. canonicalHeaders ..  signedHeaders .. "\n" .. payloadHash
+    return canonicalRequest, signedHeaders
 end
 
 local function formCredentialScope(datestamp, region, service)
-    credentialScope = datestamp .. "/" .. region .. "/" .. service .. "/" .. "aws4_request"
+    local credentialScope = datestamp .. "/" .. region .. "/" .. service .. "/" .. "aws4_request"
     return credentialScope
 end
 
-local function formStringToSign(requestDateTime, credentialScope, canonicalRequest)
-    local algorithm = "AWS4-HMAC-SHA256"
-    local canonicalRequestHash = "" --hash the canonical request
-    local stringToSign = algorithm .. "\n" .. requestDateTime .. "\n" .. credentialScope .. "\n" .. canonicalRequestHash
+local function formStringToSign(algorithm, amzdate, credentialScope, canonicalRequest)
+    local canonicalRequestHash = hashLib.sha256(canonicalRequest)
+    local stringToSign = algorithm .. "\n" .. amzdate .. "\n" .. credentialScope .. "\n" .. canonicalRequestHash
+    return stringToSign
 end
 
-local function dynamodb(accessKeyId, secretAccesskey)
+local function sign(key, message)
+    local signedMessage = hashLib.hmac(hashLib.sha256, key, message)
+    local binarySignedMessage = hashLib.hex_to_bin(signedMessage)
+    return binarySignedMessage
+end
+
+local function generateSigningKey(key, datestamp, region, service)
+    local kDate = sign("AWS4"..key, datestamp)
+    local kRegion = sign(kDate, region)
+    local kService = sign(kRegion, service)
+    local kSigning = sign(kService, 'aws4_request')
+    return kSigning
+end
+
+local function dynamodb(accessKeyId, secretAccesskey, region)
     local this = {}
 
-    this.secretAccesskey = secretAccesskey
-    this.accessKeyId = accessKeyId
+    if not region then region = "us-east-1" end
 
-    function GetAsync(key)
+    this.secretAccessKey = secretAccesskey
+    this.accessKeyId = accessKeyId
+    this.region = region
+    this.service = "dynamodb"
+
+    function this:GetAsync(key)
+        if self ~= this then error("GetAsync must be called with `:`, not `.`") end
+
         local method = "GET"
+        local algorithm = "AWS4-HMAC-SHA256"
+        local requestTime = os.time()
+        local datestamp = os.date("%Y%m%d", requestTime)
+        local amzdate = os.date("%Y%m%dT%H%M%SZ", requestTime)
+
+        --Task 1: Calculate Canonical Request--
+
+        local canonicalRequest, signedHeaders = formCanonicalRequest(
+            method,
+            "/",
+            {
+                ["Action"] = "DescribeRegions",
+                ["Version"] = "2013-10-15"
+            },
+            {
+                ["Host"] = "dynamodb.amazonaws.com",
+                ["x-amz-date"] = amzdate
+            },
+            ""
+        )
+
+        --Task 2: Calculate String to Sign--
+        local credentialScope = formCredentialScope(datestamp, self.region, self.service)
+        local stringToSign = formStringToSign(algorithm, amzdate, credentialScope, canonicalRequest)
+
+        --Task 3: Sign the String to Sign--
+        local signingKey = generateSigningKey(self.secretAccessKey, datestamp, self.region, self.service)
+        local signature = hashLib.hmac(hashLib.sha256, signingKey, stringToSign)
+
+        --Task 4: Add Signing Info to Request--
+        local authorizationHeader = algorithm .. " " .. "Credential=" .. self.accessKeyId .. "/" .. credentialScope .. ", SignedHeaders=" .. signedHeaders .. ", Signature=" .. signature
+
+        --Task 5: Send request--
+
+        --Task 6: Parse request; raise error if needed--
+
+        return authorizationHeader
     end
 
     return this
 end
 
-return { urlEncode = urlEncode }
+return { dynamodb = dynamodb }

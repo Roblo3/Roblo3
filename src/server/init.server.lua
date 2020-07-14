@@ -1,8 +1,5 @@
 local aws = require(script.aws)
 
-local url = aws.urlEncode("https://aws.amazon.com/api-gateway/")
+local authHeader = aws.dynamodb("A123", "S123", "us-east-1")
 
-print(url)
-
-local str = "hello\nworld"
-print(str)
+print(authHeader)
