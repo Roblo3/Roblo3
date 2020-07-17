@@ -1,6 +1,6 @@
 local HttpService = game:GetService("HttpService")
 
-local hashLib = require(script.Parent.Parent.HashLib)
+local hashLib = require(script.Parent.HashLib)
 
 local function split(inputString, separator) 
 	local sep = separator or '%s'
@@ -119,14 +119,5 @@ local function formAuthenticationHeader(authItems)
 
     return authorizationHeader, canonicalQueryString
 end
-
---[[
-return { 
-    uriEncode = uriEncode,
-    formCanonicalRequest = formCanonicalRequest,
-    formCredentialScope = formCredentialScope,
-    formStringToSign = formStringToSign,
-    generateSigningKey = generateSigningKey
-}]]--
 
 return { uriEncode = uriEncode, formAuthenticationHeader = formAuthenticationHeader}

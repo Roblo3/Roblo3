@@ -1,0 +1,10 @@
+{
+    "ProvisionedThroughputExceededException": {
+        "tryAgain": true,
+        "errorMessage": "Provisioned Throughout Exceeded"
+    },
+    "ResourceNotFoundException": {
+        "tryAgain": false,
+        "errorMessage": "The given resource could not be found."
+    }
+}

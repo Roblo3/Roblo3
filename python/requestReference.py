@@ -41,7 +41,7 @@ request_parameters +=  '"TableName": "TestTable","AttributeDefinitions": [{"Attr
 request_parameters +=  '"ProvisionedThroughput": {"WriteCapacityUnits": 5,"ReadCapacityUnits": 5}'
 request_parameters +=  '}'
 
-request_parameters = "{}"
+request_parameters = '{"TableName": ""}'
 
 # Key derivation functions. See:
 # http://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html#signature-v4-examples-python
@@ -57,8 +57,8 @@ def getSignatureKey(key, date_stamp, regionName, serviceName):
 
 # Read AWS access key from env. variables or configuration file. Best practice is NOT
 # to embed credentials in code.
-access_key = "AKIASKXJ26WMM2VX3643"
-secret_key = "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"
+access_key = "A123" #"AKIASKXJ26WMM2VX3643"
+secret_key = "S123" #"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"
 if access_key is None or secret_key is None:
     print('No access key is available.')
     sys.exit()
