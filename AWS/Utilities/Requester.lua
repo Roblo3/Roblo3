@@ -25,6 +25,57 @@ local function toTable(json)
     return HttpService:JSONDecode(json)
 end
 
+local function toDdbJson(originalTable, storeTable, topLevel)
+    if topLevel == nil then topLevel = true end
+    for key, value in pairs(originalTable) do
+        local type = type(value)
+        if type == "table" and not topLevel then
+            storeTable[key] = {}
+            if #value == 0 then --convert to map
+                storeTable[key]["M"] = {}
+                toDdbJson(value, storeTable[key]["M"], false)
+            else --convert to list
+                storeTable[key]["L"] = {}
+                toDdbJson(value, storeTable[key]["L"], false)
+            end
+        elseif type == "table" then
+            storeTable[key] = {}
+            toDdbJson(value, storeTable[key], false)
+        elseif type == "string" then
+            storeTable[key] = {
+                ["S"] = value
+            }
+        elseif type == "boolean" then
+            storeTable[key] = {
+                ["BOOL"] = tostring(value)
+            }
+        elseif type == "number" then
+            storeTable[key] = {
+                ["N"] = tostring(value)
+            }
+        end
+    end
+end
+
+local function fromDdbJson(ddbJson, storeTable)
+    for key, value in pairs(ddbJson) do
+        storeTable[key] = {}
+        for k, v in pairs(value) do
+            if k == "M" then
+                fromDdbJson(v, storeTable[key])
+            elseif k == "L" then
+                fromDdbJson(v, storeTable[key])
+            elseif k == "S" then
+                storeTable[key] = tostring(v)
+            elseif k == "N" then
+                storeTable[key] = tonumber(v)
+            elseif k == "BOOL" then
+                storeTable[key] = v
+            end
+        end
+    end
+end
+
 local function handleResponse(response)
     local statusCode = response.StatusCode
     if between(statusCode, 200, 299) then
@@ -43,10 +94,10 @@ local function handleResponse(response)
         local responseBody = response.Body
         local responseData = toTable(responseBody)
         local errorTypeData = split(responseData["__type"], "#")
-        local errorMessage = responseData["message"]
+        local errorMessage = responseData["message"] or responseData["Message"]
         local errorType = errorTypeData[2]
-        local tryAgain = errorInfo[errorType]
-        if not tryAgain then
+        local errorInfo = errorInfo[errorType]
+        if not errorInfo then
             return {
                 ["Success"] = false,
                 ["Retry"] = true,
@@ -57,7 +108,7 @@ local function handleResponse(response)
         else
             return {
                 ["Success"] = false,
-                ["Retry"] = tryAgain["tryAgain"],
+                ["Retry"] = errorInfo["tryAgain"],
                 ["Response"] = response,
                 ["ErrorType"] = errorType,
                 ["ErrorMessage"] = errorMessage
@@ -82,7 +133,7 @@ local function request(requestArgs, maxTries)
     local currentTries = 0
     local tryAgain = true
     repeat
-        wait((2^currentTries * 0.1) + (math.random(100, 1001) / 1000))
+        wait(((2^currentTries) * 0.1) + (math.random(100, 1001) / 1000))
         local success, err = pcall(function()
             response = HttpService:RequestAsync(requestArgs)
         end)
@@ -116,4 +167,4 @@ local function request(requestArgs, maxTries)
     end
 end
 
-return {request = request, toJson = toJson, toTable = toTable}
+return {request = request, toJson = toJson, toTable = toTable, toDdbJson = toDdbJson, fromDdbJson = fromDdbJson}

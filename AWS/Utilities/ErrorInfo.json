@@ -6,5 +6,9 @@
     "ResourceNotFoundException": {
         "tryAgain": false,
         "errorMessage": "The given resource could not be found."
+    },
+    "InvalidSignatureException": {
+        "tryAgain": false,
+        "errorMessage": "The given signature was invalid."
     }
 }
