@@ -1,5 +1,8 @@
 local HttpService = game:GetService("HttpService")
 
+local success, err = pcall(function() HttpService:GetAsync("https://example.org/ ") end)
+if not success then error("HttpService must be enabled. Please enter Studio and enabled HTTP Requests.") end
+
 local errorInfo = require(script.Parent.ErrorInfo)
 
 local function split(inputString, separator) 
