@@ -6,8 +6,8 @@
     "ServerScriptService": {
       "$className": "ServerScriptService",
 
-      "Amazon Web Services": {
-        "$path": "AWS"
+      "Roblo3": {
+        "$path": "Roblo3"
       }
     },
 
