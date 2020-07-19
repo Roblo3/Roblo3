@@ -1,5 +1,4 @@
 local auth = require(script.Parent.Utilities.Authentication)
-local hashLib = require(script.Parent.Utilities.HashLib)
 local requester = require(script.Parent.Utilities.Requester)
 
 local request = requester.request
@@ -29,7 +28,7 @@ local function serviceResource(accessKeyId, secretAccessKey, region)
 
     function ddb:Table(tableName)
         if self ~= ddb then error("Table must be called with `:`, not `.`", 2) end
-        if table == nil then error("`tableName` is a required parameter", 2) end
+        if tableName == nil then error("`tableName` is a required parameter", 2) end
 
         self.ddbTable = {}
         local ddbTable = self.ddbTable
