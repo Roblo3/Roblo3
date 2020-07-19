@@ -1,4 +1,4 @@
-local __version = "1.0.2"
+local __version = "1.0.0"
 
 local serviceResources = {}
 
