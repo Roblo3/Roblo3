@@ -31,6 +31,8 @@ local function client(accessKeyId, secretAccessKey, region)
         if kwargs["logStreamName"] == nil then error("`logStreamName` must be specified in `kwargs`", 2) end
         if kwargs["logEvents"] == nil then error("`logEvents` must be specified in `kwargs`", 2) end
 
+        local datestamp, amzdate = requestTime()
+
         local method = "POST"
         local query = {}
         local payload = toJson(kwargs)
@@ -83,7 +85,6 @@ local function client(accessKeyId, secretAccessKey, region)
         else
             error(response.ErrorType..": "..response.ErrorMessage, 2)
         end
-
     end
 
     return cwl
