@@ -89,3 +89,5 @@ local function client(accessKeyId, secretAccessKey, region)
 
     return cwl
 end
+
+return { client = client }
