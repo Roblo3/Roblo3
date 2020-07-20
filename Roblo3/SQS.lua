@@ -4,8 +4,6 @@ local requester = require(script.Parent.Utilities.Requester)
 local request = requester.request
 local toJson = requester.toJson
 local toTable = requester.toTable
-local toDdbJson = requester.toDdbJson
-local fromDdbJson = requester.fromDdbJson
 
 local function requestTime()
     local requestTime = os.time()
