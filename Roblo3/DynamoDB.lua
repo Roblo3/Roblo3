@@ -189,7 +189,7 @@ local function serviceResource(accessKeyId, secretAccessKey, region)
         end
 
         function ddbTable:GetTableInfo()
-            if self ~= ddb then error("`GetItem` must be called with `:`, not `.`", 2) end
+            if self ~= ddbTable then error("`UpdateItem` must be called with `:`, not `.`", 2) end
             local datestamp, amzdate = requestTime()
 
             local method = "POST"
