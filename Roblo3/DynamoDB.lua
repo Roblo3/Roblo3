@@ -7,8 +7,15 @@ local toTable = requester.toTable
 local toDdbJson = requester.toDdbJson
 local fromDdbJson = requester.fromDdbJson
 
+local function get_timezone_offset(ts)
+	local utcdate   = os.date("!*t", ts)
+	local localdate = os.date("*t", ts)
+	localdate.isdst = false -- this is the trick
+	return os.difftime(os.time(localdate), os.time(utcdate))
+end
+
 local function requestTime()
-    local requestTime = os.time()
+    local requestTime = os.time() - get_timezone_offset()
     local datestamp = os.date("%Y%m%d", requestTime)
     local amzdate = os.date("%Y%m%dT%H%M%SZ", requestTime)
     return datestamp, amzdate
