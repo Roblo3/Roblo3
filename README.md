@@ -38,13 +38,13 @@ local dynamodb = roblo3.resource("dynamodb", awsArgs)
 Then, call the `Table` function from DynamoDB and pass in the name of the table you want (for this, `TestTable` will be used).
 
 ```lua
-local TestTable = dynamodb.Table("TestTable")
+local TestTable = dynamodb:Table("TestTable")
 ```
 
 Finally, we can get information about the table by calling `GetTableInfo` on the table, then print the Amazon Resource Name returned by the function.
 
 ```lua
-local tableInfo = TestTable.GetTableInfo()
+local tableInfo = TestTable:GetTableInfo()
 
 print(tableInfo.TableArn)
 
